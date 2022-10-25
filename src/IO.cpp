@@ -8,6 +8,10 @@ SDL_RWops* SDL_RWFromStream(std::istream& stream) {
 	if (!rw)
 		return nullptr;
 
+	rw->size = [](SDL_RWops* rw) -> Sint64 {
+		return -1;
+	};
+
 	rw->seek = [](SDL_RWops* rw, Sint64 offset, int way) -> Sint64 {
 		auto& stream = *(std::istream*) rw->hidden.unknown.data1;
 
@@ -38,6 +42,10 @@ SDL_RWops* SDL_RWFromStream(std::istream& stream) {
 		return (size_t) (stream.bad() ? -1 : stream.gcount() / size);
 	};
 
+	rw->write = [](SDL_RWops* rw, const void *ptr, size_t size, size_t num) -> size_t {
+		return 0;
+	};
+
 	rw->close = [](SDL_RWops* rw) -> int {
 		if (rw)
 			SDL_FreeRW(rw);
@@ -55,6 +63,13 @@ SDL_RWops* SDL_RWFromStreamRange(std::istream& stream, unsigned int length) {
 
 	if (!rw)
 		return nullptr;
+
+	rw->size = [](SDL_RWops* rw) -> Sint64 {
+		auto start = (fpos_t) rw->hidden.mem.here;
+		auto stop = (fpos_t) rw->hidden.mem.stop;
+
+		return stop - start;
+	};
 
 	rw->seek = [](SDL_RWops* rw, Sint64 offset, int way) -> Sint64 {
 		auto& stream = *(std::istream*) rw->hidden.mem.base;
@@ -89,6 +104,10 @@ SDL_RWops* SDL_RWFromStreamRange(std::istream& stream, unsigned int length) {
 		stream.read((char*) ptr, numBytes);
 
 		return (size_t) (stream.bad() ? -1 : stream.gcount() / size);
+	};
+
+	rw->write = [](SDL_RWops* rw, const void *ptr, size_t size, size_t num) -> size_t {
+		return 0;
 	};
 
 	rw->close = [](SDL_RWops* rw) -> int {
