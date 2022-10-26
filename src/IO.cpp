@@ -2,11 +2,18 @@
 #include <SDL_rwops.h>
 #include <algorithm>
 
+struct InternalData {
+	std::istream* stream{};
+	Sint64 start{}, stop{};
+};
+
 SDL_RWops* SDL_RWFromStream(std::istream& stream) {
 	auto rw = SDL_AllocRW();
 
 	if (!rw)
 		return nullptr;
+
+	rw->type = 0;
 
 	rw->size = [](SDL_RWops* rw) -> Sint64 {
 		return -1;
@@ -64,17 +71,25 @@ SDL_RWops* SDL_RWFromStreamRange(std::istream& stream, unsigned int length) {
 	if (!rw)
 		return nullptr;
 
-	rw->size = [](SDL_RWops* rw) -> Sint64 {
-		auto start = (fpos_t) rw->hidden.mem.here;
-		auto stop = (fpos_t) rw->hidden.mem.stop;
+	rw->type = 0;
 
-		return stop - start;
+	const auto internalData = new InternalData();
+	internalData->stream = &stream;
+	internalData->start = stream.tellg();
+	internalData->stop = (Sint64) stream.tellg() + length;
+	rw->hidden.unknown.data1 = reinterpret_cast<void*>(internalData);
+
+	rw->size = [](SDL_RWops* rw) -> Sint64 {
+		const auto internalData = reinterpret_cast<InternalData*>(rw->hidden.unknown.data1);
+		return internalData->stop - internalData->start;
 	};
 
 	rw->seek = [](SDL_RWops* rw, Sint64 offset, int way) -> Sint64 {
-		auto& stream = *(std::istream*) rw->hidden.mem.base;
-		auto start = (fpos_t) rw->hidden.mem.here;
-		auto stop = (fpos_t) rw->hidden.mem.stop;
+		const auto internalData = reinterpret_cast<InternalData*>(rw->hidden.unknown.data1);
+
+		auto& stream = *internalData->stream;
+		auto start = internalData->start;
+		auto stop = internalData->stop;
 
 		switch (way) {
 		case SEEK_SET:
@@ -97,8 +112,10 @@ SDL_RWops* SDL_RWFromStreamRange(std::istream& stream, unsigned int length) {
 		if (size == 0)
 			return -1;
 
-		auto& stream = *(std::istream*) rw->hidden.mem.base;
-		auto stop = (std::streamoff) rw->hidden.mem.stop;
+		const auto internalData = reinterpret_cast<InternalData*>(rw->hidden.unknown.data1);
+
+		auto& stream = *internalData->stream;
+		auto stop = internalData->stop;
 
 		auto numBytes = std::min((std::streamoff) (size * maxnum), (std::streamoff) (stop - stream.tellg()));
 		stream.read((char*) ptr, numBytes);
@@ -111,15 +128,15 @@ SDL_RWops* SDL_RWFromStreamRange(std::istream& stream, unsigned int length) {
 	};
 
 	rw->close = [](SDL_RWops* rw) -> int {
-		if (rw)
+		if (rw) {
+			const auto internalData = reinterpret_cast<InternalData*>(rw->hidden.unknown.data1);
+			delete internalData;
+
 			SDL_FreeRW(rw);
+		}
 
 		return 0;
 	};
-
-	rw->hidden.mem.base = (Uint8*) &stream;
-	rw->hidden.mem.here = (Uint8*) (std::streamoff) stream.tellg();
-	rw->hidden.mem.stop = (Uint8*) ((std::streamoff) stream.tellg() + length);
 
 	return rw;
 }
