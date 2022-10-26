@@ -4,6 +4,7 @@
 #include <Game.hpp>
 #include <OpenGL.hpp>
 #include <Scenes\Main.hpp>
+#include <Clock.hpp>
 
 #ifndef FPS6_NO_AUDIO
 #include <SDL_mixer.h>
@@ -86,8 +87,13 @@ int main(int argc, char** argv) {
 		PrepareOpenGL();
 
 		Game::Init();
+		
+		double timerPrecision = 1;
 
 		while (g_isRunning) {
+			Clock updateClock;
+			updateClock.start();
+			
 			SDL_Event ev;
 
 			g_lastIsMouseDown = g_isMouseDown;
@@ -130,13 +136,30 @@ int main(int argc, char** argv) {
 			Game::Update(0);
 			Game::Render();
 			
+			SDL_GL_SwapWindow(g_window);
+			
+			updateClock.stop();
+			const auto updateDuration = updateClock.durationInMilliseconds();
+			
+			// Sleep for atleast 1ms to keep browser responsive, aim for 30 fps and adjust for timer precision
+			const auto fps = 30;
+			const auto sleepTime = std::max<int>(1, static_cast<int>((1000 / fps) - updateDuration) * (1 / timerPrecision));
+			
+			Clock sleepClock;
+			sleepClock.start();
+			
 			#ifdef __EMSCRIPTEN__
-			emscripten_sleep(25);
+			emscripten_sleep(sleepTime);
 			#else
-			SDL_Delay(25);
+			SDL_Delay(sleepTime);
 			#endif
 			
-			SDL_GL_SwapWindow(g_window);
+			sleepClock.stop();
+			
+			// Recalculate timer precision. Reuse last precision to get a somewhat averaged result.
+			const auto updateAmount = 0.2;
+			timerPrecision = (1 - updateAmount) * timerPrecision + updateAmount *
+				(static_cast<double>(sleepClock.durationInMilliseconds()) / sleepTime);
 		}
 
 		Cleanup();
