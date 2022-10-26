@@ -12,7 +12,7 @@ Sound::~Sound() { }
 
 void Sound::play(bool loop) { }
 
-bool Sound::isPlaying() { return false; }
+bool Sound::isPlaying() { return true; }
 
 void Sound::stop() { }
 

@@ -2,7 +2,7 @@
 #include <Window.hpp>
 #include <stdexcept>
 #include <Game.hpp>
-#include <glad/glad.h>
+#include <OpenGL.hpp>
 #include <Scenes\Main.hpp>
 
 #ifndef FPS6_NO_AUDIO
@@ -32,8 +32,10 @@ static void PrepareOpenGL() {
 	if (SDL_GL_MakeCurrent(g_window, g_context) != 0)
 		throw std::runtime_error("failed to initialize OpenGL");
 
+	#ifdef __glad_h_
 	if (!gladLoadGL())
 		throw std::runtime_error("failed to initialize OpenGL");
+	#endif
 }
 
 static void Cleanup() {
@@ -67,9 +69,9 @@ int main(int argc, char** argv) {
 			throw std::runtime_error("failed to initialize SDL");
 
 		#ifndef FPS6_NO_AUDIO
-		const auto flags = MIX_INIT_OGG;
+		const auto audioFlags = MIX_INIT_OGG;
 		
-		if ((Mix_Init(flags) & flags) != flags)
+		if ((Mix_Init(audioFlags) & audioFlags) != audioFlags)
 			throw std::runtime_error("failed to initialize audio");
 
 		if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096) != 0)
@@ -127,7 +129,13 @@ int main(int argc, char** argv) {
 
 			Game::Update(0);
 			Game::Render();
+			
+			#ifdef __EMSCRIPTEN__
+			emscripten_sleep(25);
+			#else
 			SDL_Delay(25);
+			#endif
+			
 			SDL_GL_SwapWindow(g_window);
 		}
 

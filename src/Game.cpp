@@ -1,5 +1,5 @@
 #include <Game.hpp>
-#include <glad/glad.h>
+#include <OpenGL.hpp>
 #include <stack>
 #include <Scenes/Scene.hpp>
 #include <Scenes/Main.hpp>

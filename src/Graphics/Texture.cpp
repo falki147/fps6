@@ -77,13 +77,21 @@ void Texture::load(std::istream& stream) {
 				break;
 
 			if (format == GL_RGBA) {
+				if (bitCount != 32) {
+					throw std::runtime_error("unsupported format");
+				}
+
 				auto size = width * height * bitCount / 8;
 
 				std::vector<char> buffer(size);
 				read(stream, buffer.data(), size);
 
-				auto type = bitCount == 16 ? GL_UNSIGNED_SHORT_4_4_4_4_REV : GL_UNSIGNED_INT_8_8_8_8_REV;
-				glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, width, height, 0, GL_BGRA, type, buffer.data());
+				// Swap BGRA to RGBA
+				for (auto i = 0; i < buffer.size() - 3; i += 4) {
+					std::swap(buffer[i], buffer[i + 2]);
+				}
+
+				glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
 			}
 			else {
 				auto size = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;

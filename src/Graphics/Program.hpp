@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <glad/glad.h>
+#include <OpenGL.hpp>
 
 class Program {
 public:

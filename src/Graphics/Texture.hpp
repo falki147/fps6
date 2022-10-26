@@ -1,7 +1,7 @@
 #pragma once
 
 #include <istream>
-#include <glad/glad.h>
+#include <OpenGL.hpp>
 
 class Texture {
 public:
