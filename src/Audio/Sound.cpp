@@ -1,6 +1,36 @@
 #include <Audio/Sound.hpp>
-#include <SDL_mixer.h>
 #include <IO.hpp>
+
+#ifdef FPS6_NO_AUDIO
+
+// Define as empty struct to keep compiler happy
+struct Mix_Chunk {};
+
+Sound::Sound(struct Mix_Chunk* chunk): m_chunk(chunk) { }
+
+Sound::~Sound() { }
+
+void Sound::play(bool loop) { }
+
+bool Sound::isPlaying() { return false; }
+
+void Sound::stop() { }
+
+Sound Sound::fromFile(const std::string& file) {
+	return Sound(nullptr);
+}
+
+Sound Sound::fromFile(std::istream& stream) {
+	return Sound(nullptr);
+}
+
+Sound Sound::fromFile(std::istream& stream, unsigned int length) {
+	return Sound(nullptr);
+}
+
+#else
+
+#include <SDL_mixer.h>
 
 static Mix_Chunk* g_channels[MIX_CHANNELS] = { 0 };
 
@@ -60,3 +90,5 @@ Sound Sound::fromFile(std::istream& stream) {
 Sound Sound::fromFile(std::istream& stream, unsigned int length) {
 	return Sound(Mix_LoadWAV_RW(SDL_RWFromStreamRange(stream, length), 1));
 }
+
+#endif

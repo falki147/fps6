@@ -3,8 +3,11 @@
 #include <stdexcept>
 #include <Game.hpp>
 #include <glad/glad.h>
-#include <SDL_mixer.h>
 #include <Scenes\Main.hpp>
+
+#ifndef FPS6_NO_AUDIO
+#include <SDL_mixer.h>
+#endif
 
 #ifdef __MINGW32__
 // Import WinMain symbol from libSDL2main, so libmingw32 can find it
@@ -44,16 +47,26 @@ static void Cleanup() {
 	if (g_window)
 		SDL_DestroyWindow(g_window);
 
+	#ifndef FPS6_NO_AUDIO
 	Mix_CloseAudio();
 	Mix_Quit();
+	#endif
+	
 	SDL_Quit();
 }
 
 int main(int argc, char** argv) {
 	try {
-		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
+		int flags = SDL_INIT_VIDEO;
+		
+		#ifndef FPS6_NO_AUDIO
+		flags |= SDL_INIT_AUDIO;
+		#endif
+		
+		if (SDL_Init(flags) != 0)
 			throw std::runtime_error("failed to initialize SDL");
 
+		#ifndef FPS6_NO_AUDIO
 		const auto flags = MIX_INIT_OGG;
 		
 		if ((Mix_Init(flags) & flags) != flags)
@@ -61,6 +74,7 @@ int main(int argc, char** argv) {
 
 		if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096) != 0)
 			throw std::runtime_error("failed to initialize audio");
+		#endif
 
 		g_window = SDL_CreateWindow("fps6", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_OPENGL);// | SDL_WINDOW_FULLSCREEN);
 

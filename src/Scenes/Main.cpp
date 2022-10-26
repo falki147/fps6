@@ -11,7 +11,6 @@
 #include <Math/Vector.hpp>
 #include <Scenes/Main.hpp>
 #include <SDL.h>
-#include <SDL_mixer.h>
 #include <Game.hpp>
 
 static void checkCollisions(Entity* entity, const std::vector<Collision::Line>& lines, const std::vector<Entity*>& entities) {
